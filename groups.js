@@ -1,38 +1,23 @@
-function setCookie(name, value) {
-    const date = new Date();
-    let expiryDate;
+document.addEventListener('DOMContentLoaded', () => {
+    const data = new FormData();
+    data.append('get_cookies', 'true');
 
-    const currentYear = date.getFullYear();
-    const nextYear = currentYear + 1;
-    const september1st = new Date(currentYear, 8, 1);
-    const june30th = new Date(nextYear, 5, 30);
-    const august31st = new Date(currentYear, 7, 31);
-
-    if (date >= september1st && date <= june30th) {
-        expiryDate = june30th; 
-    } else if (date >= new Date(currentYear, 5, 30) && date <= august31st) {
-        expiryDate = august31st;
-    } else {
-        expiryDate = new Date(nextYear, 5, 30);
-    }
-
-    document.cookie = `${name}=${value};expires=${expiryDate.toUTCString()};path=/`;
-}
-
-function getCookie(name) {
-    const cookies = document.cookie.split(';').map(cookie => cookie.trim());
-    const cookie = cookies.find(cookie => cookie.startsWith(name + "="));
-    return cookie ? cookie.substring((name + "=").length) : null;
-}
-
-function saveCheckboxState(name, isChecked) {
-    setCookie(name, isChecked ? "checked" : "unchecked");
-}
-
-function restoreCheckboxState(name) {
-    const state = getCookie(name);
-    return state === "checked";
-}
+    fetch('cookies.php', {
+        method: 'POST',
+        body: data
+    })
+    .then(response => response.json())
+    .then(data => {
+        checkboxesData.forEach(e => {
+            if (data[e] === "checked") {
+                const checkbox = document.querySelector(`input[name="${e}"]`);
+                checkbox.checked = true;
+                setGroup(e, checkbox.checked);
+            }
+        });
+    })
+    .catch(error => console.error('Błąd podczas pobierania danych cookie: ', error));
+});
 
 const p = document.querySelectorAll('.p');
 const checkboxesBox = document.querySelector('.checkboxes');
@@ -53,7 +38,7 @@ p.forEach(e => {
             if (c !== lastThreeChars) {
                 checkboxesDataCount++;
             }
-        })
+        });
 
         if (checkboxesDataCount === checkboxesData.length) {
             checkboxesData.push(lastThreeChars);
@@ -64,74 +49,56 @@ p.forEach(e => {
 checkboxesData.sort((a, b) => {
     const [a1, a2] = a.split('/').map(Number);
     const [b1, b2] = b.split('/').map(Number);
-
+    
     if (a2 !== b2) {
         return a2 - b2;
     }
-
+    
     return a1 - b1;
 });
 
-
 checkboxesData.forEach(e => {
-    checkboxesBox.innerHTML+=`<input type="checkbox" name="${e}">Ukryj ${e}<br>`;
+    checkboxesBox.innerHTML+=`<input type="checkbox" name="${e}"> Ukryj ${e}<br>`;
 });
 
 const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-
-checkboxes.forEach(e => {
-    const isChecked = restoreCheckboxState(e.name);
-    e.checked = isChecked;
-
-    if (isChecked) {
-        groupSubjects.forEach(group => {
-            if (e.name == group.innerHTML.slice(-3)) {
-                group.style.display = 'none';
-                const n = group.nextElementSibling;
-                const s = n.nextElementSibling;
-                if (s.nextElementSibling !== null) {
-                    s.nextElementSibling.style.display = 'none';
-                }
-
-                n.style.display = 'none';
-                s.style.display = 'none';
-            }
-        });
-    }
-});
-
 checkboxes.forEach(e => {
     e.addEventListener('change', function() {
         saveCheckboxState(e.name, e.checked);
-
-        if (e.checked) {
-            groupSubjects.forEach(group => {
-                if (e.name == group.innerHTML.slice(-3)) {
-                    group.style.display = 'none';
-                    const n = group.nextElementSibling;
-                    const s = n.nextElementSibling;
-                    if (s.nextElementSibling !== null) {
-                        s.nextElementSibling.style.display = 'none';
-                    }
-
-                    n.style.display = 'none';
-                    s.style.display = 'none';
-                }
-            });
-        } else {
-            groupSubjects.forEach(group => {
-                if (e.name == group.innerHTML.slice(-3)) {
-                    group.style.display = 'inline-block';
-                    const n = group.nextElementSibling;
-                    const s = n.nextElementSibling;
-                    if (s.nextElementSibling !== null) {
-                        s.nextElementSibling.style.display = 'block';
-                    }
-
-                    n.style.display = 'inline-block';
-                    s.style.display = 'inline-block';
-                }
-            });
-        }
+        setGroup(e.name, e.checked);
     });
 });
+
+function saveCheckboxState(name, isChecked) {
+    const data = new FormData();
+    data.append('cookieName', name);
+    data.append('cookieValue', isChecked ? 'checked' : 'unchecked');
+
+    fetch('cookies.php', {
+        method: 'POST',
+        body: data
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log('Zapisano plik cookie: ', data);
+    })
+    .catch(error => {
+        console.error('Błąd podczas zapisu pliku cookie: ', error);
+    });
+}
+
+function setGroup(name, checked) {
+    let displayValue = checked ? 'none' : 'inline-block';
+    groupSubjects.forEach(group => {
+        if (name === group.innerHTML.slice(-3)) {
+            group.style.display = displayValue;
+            const n = group.nextElementSibling;
+            const s = n.nextElementSibling;
+            if (s.nextElementSibling !== null) {
+                s.nextElementSibling.style.display = displayValue;
+            }
+            n.style.display = displayValue;
+            s.style.display = displayValue;
+        }
+    });
+}
