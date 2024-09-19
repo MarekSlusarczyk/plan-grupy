@@ -1,3 +1,6 @@
+const spanElement = document.querySelector('.tytulnapis');
+const prefix = spanElement ? spanElement.textContent.slice(0, 2) : '';
+
 document.addEventListener('DOMContentLoaded', () => {
     const data = new FormData();
     data.append('get_cookies', 'true');
@@ -9,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(response => response.json())
     .then(data => {
         checkboxesData.forEach(e => {
-            if (data[e] === "checked") {
+            const cookieName = `${prefix}_${e}`;
+            if (data[cookieName] === "checked") {
                 const checkbox = document.querySelector(`input[name="${e}"]`);
                 checkbox.checked = true;
                 setGroup(e, checkbox.checked);
@@ -58,7 +62,7 @@ checkboxesData.sort((a, b) => {
 });
 
 checkboxesData.forEach(e => {
-    checkboxesBox.innerHTML+=`<input type="checkbox" name="${e}"> Ukryj ${e}<br>`;
+    checkboxesBox.innerHTML += `<input type="checkbox" name="${e}"> Ukryj ${e}<br>`;
 });
 
 const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -70,8 +74,9 @@ checkboxes.forEach(e => {
 });
 
 function saveCheckboxState(name, isChecked) {
+    const cookieName = `${prefix}_${name}`;
     const data = new FormData();
-    data.append('cookieName', name);
+    data.append('cookieName', cookieName);
     data.append('cookieValue', isChecked ? 'checked' : 'unchecked');
 
     fetch('cookies.php', {
